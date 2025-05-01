@@ -5,8 +5,8 @@ import com.yuqing.qingdada.common.ErrorCode;
 /**
  * 抛异常工具类
  *
- * @author <a href="https://github.com/liyuqing">程序员鱼皮</a>
- * @from <a href="https://yuqing.icu">编程导航知识星球</a>
+ * @author Yuqing
+ * 
  */
 public class ThrowUtils {
 

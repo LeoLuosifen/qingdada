@@ -8,12 +8,14 @@ import org.apache.commons.lang3.ObjectUtils;
 /**
  * 文件上传业务类型枚举
  *
- * @author <a href="https://github.com/liyuqing">程序员鱼皮</a>
- * @from <a href="https://yuqing.icu">编程导航知识星球</a>
+ * @author Yuqing
+ * 
  */
 public enum FileUploadBizEnum {
 
-    USER_AVATAR("用户头像", "user_avatar");
+    USER_AVATAR("用户头像", "user_avatar"),
+    App_ICON("应用图标", "app_icon"),
+    SCORING_RESULT_PICTURE("评分结果图片", "scoring_result_picture");
 
     private final String text;
 

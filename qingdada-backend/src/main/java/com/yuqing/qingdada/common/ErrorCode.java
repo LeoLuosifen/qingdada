@@ -3,8 +3,8 @@ package com.yuqing.qingdada.common;
 /**
  * 自定义错误码
  *
- * @author <a href="https://github.com/liyuqing">程序员鱼皮</a>
- * @from <a href="https://yuqing.icu">编程导航知识星球</a>
+ * @author Yuqing
+ * 
  */
 public enum ErrorCode {
 
