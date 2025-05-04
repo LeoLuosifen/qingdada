@@ -14,18 +14,25 @@ import com.yuqing.qingdada.model.dto.userAnswer.UserAnswerAddRequest;
 import com.yuqing.qingdada.model.dto.userAnswer.UserAnswerEditRequest;
 import com.yuqing.qingdada.model.dto.userAnswer.UserAnswerQueryRequest;
 import com.yuqing.qingdada.model.dto.userAnswer.UserAnswerUpdateRequest;
+import com.yuqing.qingdada.model.entity.App;
 import com.yuqing.qingdada.model.entity.UserAnswer;
 import com.yuqing.qingdada.model.entity.User;
+import com.yuqing.qingdada.model.enums.ReviewStatusEnum;
 import com.yuqing.qingdada.model.vo.UserAnswerVO;
+import com.yuqing.qingdada.scoring.ScoringStrategyExecutor;
+import com.yuqing.qingdada.service.AppService;
 import com.yuqing.qingdada.service.UserAnswerService;
 import com.yuqing.qingdada.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.implementation.bytecode.Throw;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+
+import static org.bouncycastle.its.asn1.EndEntityType.app;
 
 /**
  * 用户答案接口
@@ -39,10 +46,16 @@ import java.util.List;
 public class UserAnswerController {
 
     @Resource
+    private AppService appService;
+
+    @Resource
     private UserAnswerService userAnswerService;
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private ScoringStrategyExecutor scoringStrategyExecutor;
 
     // region 增删改查
 
@@ -63,6 +76,14 @@ public class UserAnswerController {
         userAnswer.setChoices(JSONUtil.toJsonStr(choices));
         // 数据校验
         userAnswerService.validUserAnswer(userAnswer, true);
+
+        // 判断 app 是否存在
+        Long appId = userAnswerAddRequest.getAppId();
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        if (!ReviewStatusEnum.PASS.equals(ReviewStatusEnum.getEnumByValue(app.getReviewStatus()))) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "应用未通过审核，无法答题");
+        }
         // 填充默认值
         User loginUser = userService.getLoginUser(request);
         userAnswer.setUserId(loginUser.getId());
@@ -71,6 +92,15 @@ public class UserAnswerController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         // 返回新写入的数据 id
         long newUserAnswerId = userAnswer.getId();
+        // 调用评分模块
+        try {
+            UserAnswer userAnswerWithResult = scoringStrategyExecutor.doScore(choices, app);
+            userAnswerWithResult.setId(newUserAnswerId);
+            userAnswerService.updateById(userAnswerWithResult);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "评分错误");
+        }
         return ResultUtils.success(newUserAnswerId);
     }
 
